@@ -13,12 +13,16 @@ typedef ChakraProtoMsg::NodeType ChakraNodeType;
 
 HardwareResource::HardwareResource(uint32_t num_npus)
   : num_npus(num_npus),
+  num_in_flight_mem_reqs(0),
   num_in_flight_comps(0),
   num_in_flight_comms(0) {
 }
 
 void HardwareResource::occupy(const shared_ptr<Chakra::ETFeederNode> node) {
-  if (node->getChakraNode()->node_type() == ChakraNodeType::COMP_NODE) {
+  if ((node->getChakraNode()->node_type() == ChakraNodeType::MEM_LOAD_NODE)
+      || (node->getChakraNode()->node_type() == ChakraNodeType::MEM_STORE_NODE)) {
+    ++num_in_flight_mem_reqs;
+  } else if (node->getChakraNode()->node_type() == ChakraNodeType::COMP_NODE) {
     ++num_in_flight_comps;
   } else if ((node->getChakraNode()->node_type() == ChakraNodeType::COMM_SEND_NODE)
       || (node->getChakraNode()->node_type() == ChakraNodeType::COMM_RECV_NODE)
@@ -28,7 +32,10 @@ void HardwareResource::occupy(const shared_ptr<Chakra::ETFeederNode> node) {
 }
 
 void HardwareResource::release(const shared_ptr<Chakra::ETFeederNode> node) {
-  if (node->getChakraNode()->node_type() == ChakraNodeType::COMP_NODE) {
+  if ((node->getChakraNode()->node_type() == ChakraNodeType::MEM_LOAD_NODE)
+      || (node->getChakraNode()->node_type() == ChakraNodeType::MEM_STORE_NODE)) {
+    --num_in_flight_mem_reqs;
+  } else if (node->getChakraNode()->node_type() == ChakraNodeType::COMP_NODE) {
     --num_in_flight_comps;
   } else if ((node->getChakraNode()->node_type() == ChakraNodeType::COMM_SEND_NODE)
       || (node->getChakraNode()->node_type() == ChakraNodeType::COMM_RECV_NODE)
